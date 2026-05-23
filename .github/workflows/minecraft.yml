@@ -1,4 +1,4 @@
-name: Temporary Minecraft Server
+name: Minecraft Server + Cloudflare TCP Tunnel
 
 on:
   workflow_dispatch:
@@ -8,32 +8,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install Java
+      - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y openjdk-17-jre wget curl
 
-      - name: Setup server
+      - name: Setup Minecraft Server
         run: |
           mkdir mc
           cd mc
+
           wget -O server.jar https://api.papermc.io/v2/projects/paper/versions/1.20.4/builds/400/downloads/paper-1.20.4-400.jar
+
           echo "eula=true" > eula.txt
 
-      - name: Install cloudflared
+      - name: Install Cloudflared
         run: |
-          wget -O cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
           chmod +x cloudflared
           sudo mv cloudflared /usr/local/bin/
 
-      - name: Start server + tunnel
+      - name: Start Minecraft Server + Tunnel
         run: |
           cd mc
 
-          # start minecraft
+          # Start Minecraft server
           java -Xmx1G -Xms1G -jar server.jar nogui &
 
-          sleep 10
+          # wait for server to boot
+          sleep 15
 
-          # start PUBLIC tunnel (NO TOKEN REQUIRED)
-          cloudflared tunnel --url http://localhost:25565
+          # IMPORTANT: TCP tunnel (NOT HTTP)
+          cloudflared tunnel --url tcp://localhost:25565
