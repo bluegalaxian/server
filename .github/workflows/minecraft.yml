@@ -1,4 +1,4 @@
-name: PaperMC Server + Plugins + Cloudflare Tunnel
+name: PaperMC Server + Hangar Plugins + Cloudflare Tunnel
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ jobs:
           sudo apt update
           sudo apt install -y openjdk-17-jre wget curl unzip
 
-      - name: Setup Minecraft Server
+      - name: Setup PaperMC Server
         run: |
           mkdir mc
           cd mc
@@ -23,21 +23,24 @@ jobs:
           echo "eula=true" > eula.txt
           mkdir -p plugins
 
-      - name: Download Plugins (stable + working links)
+      - name: Download Plugins (HANGAR STABLE LINKS)
         run: |
           cd mc/plugins
 
-          # EssentialsX (stable GitHub release)
+          # NOTE:
+          # These are direct Hangar download endpoints for stable plugin builds
+
+          # EssentialsX (still not on Hangar, so we keep official stable GitHub release)
           wget -O EssentialsX.jar https://github.com/EssentialsX/Essentials/releases/download/2.21.0/EssentialsX-2.21.0.jar
           wget -O EssentialsXChat.jar https://github.com/EssentialsX/Essentials/releases/download/2.21.0/EssentialsXChat-2.21.0.jar
           wget -O EssentialsXSpawn.jar https://github.com/EssentialsX/Essentials/releases/download/2.21.0/EssentialsXSpawn-2.21.0.jar
 
-          # ViaVersion stack (CI builds)
-          wget -O ViaVersion.jar https://ci.viaversion.com/job/ViaVersion/lastSuccessfulBuild/artifact/build/libs/ViaVersion.jar
-          wget -O ViaBackwards.jar https://ci.viaversion.com/job/ViaBackwards/lastSuccessfulBuild/artifact/build/libs/ViaBackwards.jar
-          wget -O ViaRewind.jar https://ci.viaversion.com/job/ViaRewind/lastSuccessfulBuild/artifact/build/libs/ViaRewind.jar
+          # ViaVersion family (Hangar official pages)
+          wget -O ViaVersion.jar https://hangar.papermc.io/api/v1/projects/ViaVersion/ViaVersion/latest/download
+          wget -O ViaBackwards.jar https://hangar.papermc.io/api/v1/projects/ViaVersion/ViaBackwards/latest/download
+          wget -O ViaRewind.jar https://hangar.papermc.io/api/v1/projects/ViaVersion/ViaRewind/latest/download
 
-          # AuthMe Reloaded (stable CI)
+          # AuthMe Reloaded (NOT on Hangar → stable Spigot CI fallback)
           wget -O AuthMe.jar https://ci.codemc.io/job/AuthMe/job/AuthMeReloaded/lastSuccessfulBuild/artifact/target/AuthMe.jar
 
       - name: Install Cloudflared
@@ -46,14 +49,12 @@ jobs:
           chmod +x cloudflared
           sudo mv cloudflared /usr/local/bin/
 
-      - name: Start Minecraft + Tunnel
+      - name: Start Server + Tunnel
         run: |
           cd mc
 
-          # Start Minecraft server
           java -Xmx2G -Xms1G -jar server.jar nogui &
 
           sleep 20
 
-          # Start Cloudflare tunnel (THIS IS THE CORRECT FIXED LINE)
           cloudflared tunnel --no-autoupdate run --token ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
