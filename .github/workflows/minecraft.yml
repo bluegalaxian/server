@@ -1,4 +1,4 @@
-name: PaperMC Server + Hangar Plugins + Cloudflare Tunnel
+name: PaperMC Server + SimpleAuth + Cloudflare Tunnel
 
 on:
   workflow_dispatch:
@@ -23,19 +23,17 @@ jobs:
           echo "eula=true" > eula.txt
           mkdir -p plugins
 
-      - name: Download Plugins (HANGAR ONLY)
+      - name: Download Plugins
         run: |
           cd mc/plugins
 
-          # ViaVersion (Hangar official CDN)
-          wget -O ViaVersion.jar https://hangarcdn.papermc.io/plugins/ViaVersion/ViaVersion/versions/latest/PAPER
+          # ViaVersion (optional cross-version support)
+          wget -O ViaVersion.jar https://github.com/ViaVersion/ViaVersion/releases/latest/download/ViaVersion.jar
+          wget -O ViaBackwards.jar https://github.com/ViaVersion/ViaBackwards/releases/latest/download/ViaBackwards.jar
+          wget -O ViaRewind.jar https://github.com/ViaVersion/ViaRewind/releases/latest/download/ViaRewind.jar
 
-          wget -O ViaBackwards.jar https://hangarcdn.papermc.io/plugins/ViaVersion/ViaBackwards/versions/latest/PAPER
-
-          wget -O ViaRewind.jar https://hangarcdn.papermc.io/plugins/ViaVersion/ViaRewind/versions/latest/PAPER
-
-          # AuthMe Reloaded is NOT on Hangar → must use stable CI fallback
-          wget -O AuthMe.jar https://ci.codemc.io/job/AuthMe/job/AuthMeReloaded/lastSuccessfulBuild/artifact/target/AuthMe.jar
+          # SimpleAuth (clean login plugin, stable Spigot build mirror)
+          wget -O SimpleAuth.jar https://cdn.modrinth.com/data/simpleauth/versions/latest/SimpleAuth.jar
 
       - name: Install Cloudflared
         run: |
