@@ -1,4 +1,4 @@
-name: PaperMC Server (Vanilla) + Cloudflare Tunnel
+name: PaperMC + Stable Cloudflare Tunnel
 
 on:
   workflow_dispatch:
@@ -8,18 +8,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install Java + tools
+      - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y openjdk-17-jre wget curl
 
-      - name: Setup Minecraft Server
+      - name: Setup server
         run: |
           mkdir mc
           cd mc
-
           wget -O server.jar https://api.papermc.io/v2/projects/paper/versions/1.20.4/builds/400/downloads/paper-1.20.4-400.jar
-
           echo "eula=true" > eula.txt
 
       - name: Install Cloudflared
@@ -28,15 +26,19 @@ jobs:
           chmod +x cloudflared
           sudo mv cloudflared /usr/local/bin/
 
+      - name: Verify Token Exists
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}" ]; then
+            echo "ERROR: Missing Cloudflare token"
+            exit 1
+          fi
+
       - name: Start Server + Tunnel
         run: |
           cd mc
 
-          # Start Minecraft server in background
           java -Xmx2G -Xms1G -jar server.jar nogui &
-          
-          # Give server time to fully start
-          sleep 25
 
-          # Start tunnel (THIS MUST BE LAST AND BLOCKING)
-          cloudflared tunnel --no-autoupdate run --token ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+          sleep 30
+
+          cloudflared tunnel --no-autoupdate run --token "${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}"
