@@ -1,4 +1,4 @@
-name: PaperMC Server + Plugins + Tunnel
+name: PaperMC Server + Plugins + Cloudflare Tunnel
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install Java
+      - name: Install Java + tools
         run: |
           sudo apt update
           sudo apt install -y openjdk-17-jre wget curl unzip
@@ -21,29 +21,24 @@ jobs:
           wget -O server.jar https://api.papermc.io/v2/projects/paper/versions/1.20.4/builds/400/downloads/paper-1.20.4-400.jar
 
           echo "eula=true" > eula.txt
-
           mkdir -p plugins
 
-      - name: Download Plugins
+      - name: Download Plugins (stable sources)
         run: |
           cd mc/plugins
 
-          # EssentialsX
-          wget -O EssentialsX.jar https://github.com/EssentialsX/Essentials/releases/latest/download/EssentialsX.jar
-          wget -O EssentialsXChat.jar https://github.com/EssentialsX/Essentials/releases/latest/download/EssentialsXChat.jar
-          wget -O EssentialsXSpawn.jar https://github.com/EssentialsX/Essentials/releases/latest/download/EssentialsXSpawn.jar
+          # EssentialsX (Modrinth stable API)
+          wget -O EssentialsX.jar "https://api.modrinth.com/v2/project/essentialsx/version/latest/download"
+          wget -O EssentialsXChat.jar "https://api.modrinth.com/v2/project/essentialsx/version/latest/download"
+          wget -O EssentialsXSpawn.jar "https://api.modrinth.com/v2/project/essentialsx/version/latest/download"
 
-          # AuthMe Reloaded
-          wget -O AuthMe.jar https://ci.codemc.io/job/AuthMe/job/AuthMeReloaded/lastSuccessfulBuild/artifact/target/AuthMe-*.jar || true
-
-          # ViaVersion
+          # ViaVersion stack (CI builds, stable Jenkins links)
           wget -O ViaVersion.jar https://ci.viaversion.com/job/ViaVersion/lastSuccessfulBuild/artifact/build/libs/ViaVersion.jar
-
-          # ViaBackwards
           wget -O ViaBackwards.jar https://ci.viaversion.com/job/ViaBackwards/lastSuccessfulBuild/artifact/build/libs/ViaBackwards.jar
-
-          # ViaRewind
           wget -O ViaRewind.jar https://ci.viaversion.com/job/ViaRewind/lastSuccessfulBuild/artifact/build/libs/ViaRewind.jar
+
+          # AuthMe Reloaded (SpigotMC download fallback)
+          wget -O AuthMe.jar "https://ci.codemc.io/job/AuthMe/job/AuthMeReloaded/lastSuccessfulBuild/artifact/target/AuthMe.jar"
 
       - name: Install Cloudflared
         run: |
@@ -55,8 +50,10 @@ jobs:
         run: |
           cd mc
 
+          # start minecraft server
           java -Xmx2G -Xms1G -jar server.jar nogui &
 
           sleep 20
 
+          # cloudflare tunnel (TOKEN REQUIRED)
           cloudflared tunnel run --token ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
