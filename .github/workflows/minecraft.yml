@@ -1,4 +1,4 @@
-name: PaperMC Server (No Plugins) + Cloudflare Tunnel
+name: PaperMC Server (Vanilla) + Cloudflare Tunnel
 
 on:
   workflow_dispatch:
@@ -18,14 +18,9 @@ jobs:
           mkdir mc
           cd mc
 
-          # Download PaperMC 1.20.4
           wget -O server.jar https://api.papermc.io/v2/projects/paper/versions/1.20.4/builds/400/downloads/paper-1.20.4-400.jar
 
-          # Accept EULA
           echo "eula=true" > eula.txt
-
-          # Basic server config tweak (optional but helpful)
-          echo "online-mode=true" >> server.properties
 
       - name: Install Cloudflared
         run: |
@@ -37,10 +32,11 @@ jobs:
         run: |
           cd mc
 
-          # Start Minecraft server
+          # Start Minecraft server in background
           java -Xmx2G -Xms1G -jar server.jar nogui &
+          
+          # Give server time to fully start
+          sleep 25
 
-          sleep 20
-
-          # Start Cloudflare Tunnel (YOUR TOKEN REQUIRED)
+          # Start tunnel (THIS MUST BE LAST AND BLOCKING)
           cloudflared tunnel --no-autoupdate run --token ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
