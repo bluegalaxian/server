@@ -1,4 +1,4 @@
-name: PaperMC Server + Hangar Plugins + Cloudflare Tunnel
+name: PaperMC Server + Stable Plugins + Cloudflare Tunnel
 
 on:
   workflow_dispatch:
@@ -23,24 +23,21 @@ jobs:
           echo "eula=true" > eula.txt
           mkdir -p plugins
 
-      - name: Download Plugins (HANGAR STABLE LINKS)
+      - name: Download Plugins (STABLE ONLY)
         run: |
           cd mc/plugins
 
-          # NOTE:
-          # These are direct Hangar download endpoints for stable plugin builds
-
-          # EssentialsX (still not on Hangar, so we keep official stable GitHub release)
+          # EssentialsX (ONLY stable GitHub release assets)
           wget -O EssentialsX.jar https://github.com/EssentialsX/Essentials/releases/download/2.21.0/EssentialsX-2.21.0.jar
           wget -O EssentialsXChat.jar https://github.com/EssentialsX/Essentials/releases/download/2.21.0/EssentialsXChat-2.21.0.jar
           wget -O EssentialsXSpawn.jar https://github.com/EssentialsX/Essentials/releases/download/2.21.0/EssentialsXSpawn-2.21.0.jar
 
-          # ViaVersion family (Hangar official pages)
-          wget -O ViaVersion.jar https://hangar.papermc.io/api/v1/projects/ViaVersion/ViaVersion/latest/download
-          wget -O ViaBackwards.jar https://hangar.papermc.io/api/v1/projects/ViaVersion/ViaBackwards/latest/download
-          wget -O ViaRewind.jar https://hangar.papermc.io/api/v1/projects/ViaVersion/ViaRewind/latest/download
+          # ViaVersion (SAFE fallback: GitHub releases, NOT Hangar)
+          wget -O ViaVersion.jar https://github.com/ViaVersion/ViaVersion/releases/latest/download/ViaVersion.jar
+          wget -O ViaBackwards.jar https://github.com/ViaVersion/ViaBackwards/releases/latest/download/ViaBackwards.jar
+          wget -O ViaRewind.jar https://github.com/ViaVersion/ViaRewind/releases/latest/download/ViaRewind.jar
 
-          # AuthMe Reloaded (NOT on Hangar → stable Spigot CI fallback)
+          # AuthMe Reloaded (stable CI fallback)
           wget -O AuthMe.jar https://ci.codemc.io/job/AuthMe/job/AuthMeReloaded/lastSuccessfulBuild/artifact/target/AuthMe.jar
 
       - name: Install Cloudflared
