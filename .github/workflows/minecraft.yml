@@ -1,4 +1,4 @@
-name: Minecraft Server + Cloudflare TCP Tunnel
+name: PaperMC Server + Plugins + Tunnel
 
 on:
   workflow_dispatch:
@@ -8,12 +8,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install dependencies
+      - name: Install Java
         run: |
           sudo apt update
-          sudo apt install -y openjdk-17-jre wget curl
+          sudo apt install -y openjdk-17-jre wget curl unzip
 
-      - name: Setup Minecraft Server
+      - name: Setup PaperMC Server
         run: |
           mkdir mc
           cd mc
@@ -22,21 +22,41 @@ jobs:
 
           echo "eula=true" > eula.txt
 
+          mkdir -p plugins
+
+      - name: Download Plugins
+        run: |
+          cd mc/plugins
+
+          # EssentialsX
+          wget -O EssentialsX.jar https://github.com/EssentialsX/Essentials/releases/latest/download/EssentialsX.jar
+          wget -O EssentialsXChat.jar https://github.com/EssentialsX/Essentials/releases/latest/download/EssentialsXChat.jar
+          wget -O EssentialsXSpawn.jar https://github.com/EssentialsX/Essentials/releases/latest/download/EssentialsXSpawn.jar
+
+          # AuthMe Reloaded
+          wget -O AuthMe.jar https://ci.codemc.io/job/AuthMe/job/AuthMeReloaded/lastSuccessfulBuild/artifact/target/AuthMe-*.jar || true
+
+          # ViaVersion
+          wget -O ViaVersion.jar https://ci.viaversion.com/job/ViaVersion/lastSuccessfulBuild/artifact/build/libs/ViaVersion.jar
+
+          # ViaBackwards
+          wget -O ViaBackwards.jar https://ci.viaversion.com/job/ViaBackwards/lastSuccessfulBuild/artifact/build/libs/ViaBackwards.jar
+
+          # ViaRewind
+          wget -O ViaRewind.jar https://ci.viaversion.com/job/ViaRewind/lastSuccessfulBuild/artifact/build/libs/ViaRewind.jar
+
       - name: Install Cloudflared
         run: |
           curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
           chmod +x cloudflared
           sudo mv cloudflared /usr/local/bin/
 
-      - name: Start Minecraft Server + Tunnel
+      - name: Start Server + Tunnel
         run: |
           cd mc
 
-          # Start Minecraft server
-          java -Xmx1G -Xms1G -jar server.jar nogui &
+          java -Xmx2G -Xms1G -jar server.jar nogui &
 
-          # wait for server to boot
-          sleep 15
+          sleep 20
 
-          # IMPORTANT: TCP tunnel (NOT HTTP)
-          cloudflared tunnel --url tcp://localhost:25565
+          cloudflared tunnel run --token ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
