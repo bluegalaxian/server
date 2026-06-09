@@ -1,49 +1,61 @@
-name: Minecraft Server + Cloudflare Tunnel
-
-on:
-  workflow_dispatch:
+name: Minecraft Server
+on: workflow_dispatch
 
 jobs:
-  server:
+  run-server:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Install Java + tools
-        run: |
-          sudo apt update
-          sudo apt install -y openjdk-17-jre wget curl
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Create server folder
-        run: mkdir mc
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Download PaperMC 1.20.4
+      - name: Install bore (TCP Tunnel)
         run: |
-          cd mc
-          wget -O server.jar https://api.papermc.io/v2/projects/paper/versions/1.20.4/builds/400/downloads/paper-1.20.4-400.jar
+          curl -L https://github.com/ekzhang/bore/releases/download/v0.5.2/bore-v0.5.2-x86_64-unknown-linux-musl.tar.gz -o bore.tar.gz
+          tar -xzf bore.tar.gz
+          chmod +x bore
+          sudo mv bore /usr/local/bin/bore
+
+      - name: Setup Server and Plugins
+        run: |
+          mkdir plugins
+          curl -o server.jar https://api.papermc.io/v2/projects/paper/versions/1.20.1/builds/196/downloads/paper-1.20.1-196.jar
+          curl -L "https://github.com/ViaVersion/ViaVersion/releases/latest/download/ViaVersion.jar" -o plugins/ViaVersion.jar
+          curl -L "https://github.com/ViaVersion/ViaBackwards/releases/latest/download/ViaBackwards.jar" -o plugins/ViaBackwards.jar
+          curl -L "https://github.com/ViaVersion/ViaRewind/releases/latest/download/ViaRewind.jar" -o plugins/ViaRewind.jar
+          curl -L "https://github.com/AuthMe/AuthMeReloaded/releases/latest/download/AuthMe-5.6.0-SNAPSHOT.jar" -o plugins/AuthMe.jar
           echo "eula=true" > eula.txt
+          echo "online-mode=false" > server.properties
 
-      - name: Install cloudflared
+      - name: Start Tunnel and Server
         run: |
-          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
-          chmod +x cloudflared
-          sudo mv cloudflared /usr/local/bin/
-
-      - name: Validate token
-        run: |
-          if [ -z "${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}" ]; then
-            echo "ERROR: Missing Cloudflare token"
-            exit 1
+          # 1. Start bore tunnel in background
+          bore local 25565 --to bore.pub > tunnel.log 2>&1 &
+          
+          # 2. Get the tunnel address
+          echo "⌛ Fetching tunnel address..."
+          sleep 10
+          
+          echo "=== TUNNEL LOGS ==="
+          cat tunnel.log
+          echo "=== END TUNNEL LOGS ==="
+          
+          TUNNEL_ADDR=$(grep -oP 'bound to \K\S+' tunnel.log | head -1)
+          
+          if [ -z "$TUNNEL_ADDR" ]; then
+            TUNNEL_ADDR="(check 'TUNNEL LOGS' above for the join address)"
           fi
-
-      - name: Start Minecraft + Tunnel
-        run: |
-          cd mc
-
-          # start server
-          java -Xmx2G -Xms1G -jar server.jar nogui &
-
-          # wait for server startup
-          sleep 30
-
-          # start tunnel
-          cloudflared tunnel --no-autoupdate run --token "${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}"
+          
+          echo "------------------------------------------------------------"
+          echo "🌍 JOIN ADDRESS: $TUNNEL_ADDR"
+          echo "------------------------------------------------------------"
+          echo "📝 Copy this address and paste it in Minecraft > Multiplayer > Direct Connect"
+          
+          # 3. Start Minecraft Server
+          echo "🚀 Starting Minecraft Server..."
+          java -Xmx4G -Xms4G -jar server.jar nogui
